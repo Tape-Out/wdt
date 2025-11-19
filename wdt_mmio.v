@@ -13,7 +13,7 @@
 `endif
 
 `ifndef WDT_MAX_TIMEOUT
-`define WDT_MAX_TIMEOUT 32'hFFFF_FFFF
+`define WDT_MAX_TIMEOUT 32'hFFFF_FFFF  // ~0 at 100MHz ≈ 43s
 `endif
 
 module wdt_mmio #(
