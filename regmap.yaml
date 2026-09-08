@@ -1,0 +1,30 @@
+ip: wdt
+contract: { aw: 8, dw: 32 }
+base: 0x10004000
+size: 0x100
+params: [width]
+regs:
+  - name: ctrl
+    offset: 0x00
+    desc: control
+    fields:
+      - { name: en,     bits: "0:0", sw: rw, hw: r, reset: 0 }
+      - { name: rstmode, bits: "1:1", sw: rw, hw: r, reset: 0 }
+  - name: load
+    offset: 0x04
+    desc: reload value
+    fields: [ { name: val, width: width, sw: rw, hw: r, reset: 0 } ]
+  - name: cnt
+    offset: 0x08
+    desc: current count
+    fields: [ { name: val, width: width, sw: r, hw: rw, volatile: true } ]
+  - name: win
+    offset: 0x0C
+    desc: earliest allowed feed
+    feature: window
+    fields: [ { name: val, width: width, sw: rw, hw: r, reset: 0 } ]
+  - name: feed
+    offset: 0x10
+    desc: write the key to feed
+    fields:
+      - { name: key, width: 32, sw: w, hw: r, swmod: true, reset: 0 }

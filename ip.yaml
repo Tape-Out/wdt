@@ -1,0 +1,31 @@
+name: wdt
+version: 0.1.0
+spec: "0.1"
+kind: ip
+lang: bsv
+identity:
+  slug: wdt-tapeout-bsv
+  display_name: Windowed watchdog timer
+  summary: Windowed watchdog with a key-protected feed.
+  category: peripheral
+  subcategories: [watchdog]
+  ip_family: wdt
+  integration_profile: [apb4-slave]
+  maturity: planned
+contract:
+  version: 1
+  ctrl: { shape: flat, aw: 8, dw: 32 }
+  irq:
+    - { name: irq, kind: level }
+params:
+  width: { type: int, default: 32, range: [16, 32] }
+features:
+  window: { type: bool, default: true }
+emit:
+  - kind: bsv
+    package: Wdt
+    module: mkWdt
+    config_type: WdtCfg
+    interface: WdtIfc
+deps:
+  hwcore: "^0.1"
