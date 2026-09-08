@@ -1,6 +1,6 @@
 name: wdt
 version: 0.1.0
-spec: "0.1"
+spec: '0.1'
 kind: ip
 lang: bsv
 identity:
@@ -8,24 +8,106 @@ identity:
   display_name: Windowed watchdog timer
   summary: Windowed watchdog with a key-protected feed.
   category: peripheral
-  subcategories: [watchdog]
+  subcategories:
+  - watchdog
   ip_family: wdt
-  integration_profile: [apb4-slave]
+  integration_profile:
+  - apb4-slave
   maturity: planned
 contract:
   version: 1
-  ctrl: { shape: flat, aw: 8, dw: 32 }
+  ctrl:
+    shape: flat
+    aw: 8
+    dw: 32
   irq:
-    - { name: irq, kind: level }
+  - name: irq
+    kind: level
 params:
-  width: { type: int, default: 32, range: [16, 32] }
+  width:
+    type: int
+    default: 32
+    range:
+    - 16
+    - 32
 features:
-  window: { type: bool, default: true }
+  window:
+    type: bool
+    default: true
+    area:
+      points:
+        '16': 227.08
+        '20': 306.32
+        '24': 377.44
+        '32': 402.92
+      per: width
 emit:
-  - kind: bsv
-    package: Wdt
-    module: mkWdt
-    config_type: WdtCfg
-    interface: WdtIfc
+- kind: bsv
+  package: Wdt
+  module: mkWdt
+  config_type: WdtCfg
+  interface: WdtIfc
+  ctrl: regs
+  pins:
+  - name: pins
+    type: WdtPins
+- kind: verilog-flat
+  bus: apb4
 deps:
-  hwcore: "^0.1"
+  hwcore: ^0.1
+  amba: ^0.1
+area:
+  base:
+    points:
+      '16': 493.08
+      '20': 599.76
+      '24': 705.6
+      '32': 906.64
+    per: width
+  margin: 0.0712
+  model: points-additive
+  error:
+    bound: 0.124
+    sign: over
+    note: parameter curves stored as measured points, features added on top, then
+      lifted by 0.0712 so that no untested combination predicts under; the worst came
+      in 6.62 percent under before the lift
+  measured:
+  - at:
+      width: 16
+      window: false
+    um2: 493.08
+  - at:
+      width: 20
+      window: false
+    um2: 599.76
+  - at:
+      width: 24
+      window: false
+    um2: 705.6
+  - at:
+      width: 32
+      window: false
+    um2: 906.64
+  - at:
+      width: 16
+      window: true
+    um2: 720.16
+  - at:
+      width: 20
+      window: true
+    um2: 906.08
+  - at:
+      width: 24
+      window: true
+    um2: 1083.04
+  - at:
+      width: 32
+      window: true
+    um2: 1309.56
+  corner:
+    tool: ecc
+    pdk: ics55
+    freq_mhz: 100
+    measured: '2026-09-08'
+    gen_digest: sha256:b086b98e4100ef38
