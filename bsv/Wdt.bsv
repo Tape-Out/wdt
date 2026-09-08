@@ -30,6 +30,9 @@ module mkWdt#(WdtCfg cfg)(WdtIfc#(aw, dw, width))
   Reg#(Bit#(width)) cnt   <- mkReg(0);
   Reg#(Bool)        fired <- mkReg(False);
   Reg#(Bool)        fedPend <- mkReg(False);
+  // 使能的上升沿要装载计数器。不装的话，使能那一拍计数器还是 0，
+  // 当场就判过期——跟 timer 的比较值复位为 0 是同一类毛病。
+  Reg#(Bit#(1))     enPrev  <- mkReg(0);
 
   // swmod 的脉冲与寄存器的新值差一拍：脉冲在写的当拍发出，寄存器下一拍才有新值。
   // 所以先记下脉冲，下一拍再读口令。
@@ -39,9 +42,12 @@ module mkWdt#(WdtCfg cfg)(WdtIfc#(aw, dw, width))
 
   rule tick;
     r.cnt_in(cnt);
-    Bool fed   = fedPend && r.feed_key == feedKey;
+    enPrev <= r.ctrl_en;
+    Bool armed = r.ctrl_en == 1 && enPrev == 0;
+    Bool fed   = armed || (fedPend && r.feed_key == feedKey);
     // 开了窗口就不许喂早：喂早跟喂晚一样算故障，这正是窗口看门狗的用处
-    Bool early = cfg.window && fed && cnt > r.win;
+    // 刚使能的那一次装载不算「喂早」
+    Bool early = cfg.window && fed && !armed && cnt > r.win;
     if (fed && !early) begin
       cnt   <= r.load;
       fired <= False;
