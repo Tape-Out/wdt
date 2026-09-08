@@ -36,10 +36,10 @@ features:
     default: true
     area:
       points:
-        '16': 227.08
-        '20': 306.32
-        '24': 377.44
-        '32': 402.92
+        '16': 348.04
+        '20': 432.88
+        '24': 445.76
+        '32': 618.52
       per: width
 emit:
 - kind: bsv
@@ -59,55 +59,55 @@ deps:
 area:
   base:
     points:
-      '16': 493.08
-      '20': 599.76
-      '24': 705.6
-      '32': 906.64
+      '16': 915.88
+      '20': 1043.0
+      '24': 1154.72
+      '32': 1401.96
     per: width
-  margin: 0.0712
+  margin: 0.034
   model: points-additive
   error:
-    bound: 0.124
+    bound: 0.033
     sign: over
     note: parameter curves stored as measured points, features added on top, then
-      lifted by 0.0712 so that no untested combination predicts under; the worst came
-      in 6.62 percent under before the lift
+      lifted by 0.034 so that no untested combination predicts under; the worst came
+      in 2.90 percent under before the lift
   measured:
   - at:
       width: 16
       window: false
-    um2: 493.08
+    um2: 915.88
   - at:
       width: 20
       window: false
-    um2: 599.76
+    um2: 1043.0
   - at:
       width: 24
       window: false
-    um2: 705.6
+    um2: 1154.72
   - at:
       width: 32
       window: false
-    um2: 906.64
+    um2: 1401.96
   - at:
       width: 16
       window: true
-    um2: 720.16
+    um2: 1263.92
   - at:
       width: 20
       window: true
-    um2: 906.08
+    um2: 1475.88
   - at:
       width: 24
       window: true
-    um2: 1083.04
+    um2: 1600.48
   - at:
       width: 32
       window: true
-    um2: 1309.56
+    um2: 2020.48
   corner:
     tool: ecc
     pdk: ics55
     freq_mhz: 100
-    measured: '2026-09-08'
-    gen_digest: sha256:b086b98e4100ef38
+    measured: '2026-09-09'
+    gen_digest: sha256:9bf00541a55e0c20
