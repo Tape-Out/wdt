@@ -1,24 +1,45 @@
-"""wdt 的行为测试台：喂对了不叫、不喂会叫、喂早了也算故障。
+"""wdt 的行为测试台：喂对了不叫、不喂会叫、喂早了算不算故障要看窗口开没开。
 
-窗口看门狗的意义全在最后一条：喂早跟喂晚一样是程序跑飞的征兆。
+认矩阵：第二个参数是本次这一点的旋钮，包名与期望都照它改。窗口关掉的那一
+点，最后一段的期望正好反过来——喂早不再是故障，而是一次正常的重装。
 
 两处结构上的讲究：
-  · 故障标志用 CReg。测试序列要在中途把它清掉重来，而 pins 规则每拍都可能
-    置位；用普通寄存器两条规则抢同一个写口，序列规则会被判不够紧急而永不触发。
+  · 故障标志用 CReg。测试序列要在中途清掉重来，而 pins 规则每拍都可能置位；
+    用普通寄存器两条规则抢同一个写口，序列规则会被判不够紧急而永不触发。
   · 检查点都要等几拍。计数器归零那一拍才写 fired，中断再下一拍才被采到。
 """
+import json
 import pathlib
 import sys
 
 out = pathlib.Path(sys.argv[1] if len(sys.argv) > 1 else ".")
 out.mkdir(parents=True, exist_ok=True)
+cfg = json.loads(sys.argv[2]) if len(sys.argv) > 2 else {}
+label = cfg.get("label", "")
+knobs = cfg.get("knobs", {})
+width = int(knobs.get("width", 32))
+window = bool(knobs.get("window", True))
 
-(out / "WdtTb.bsv").write_text('''package WdtTb;
+# 窗口开着：喂早等于故障。窗口关着：喂早只是提前重装，不该有任何动静。
+if window:
+    early_check = """      if (!irqSeen[1]) begin
+        $display("FAIL an early feed was accepted, no fault raised");
+        bad <= True;
+      end"""
+    verdict = "fed in window is quiet, expiry fires, early feed faults"
+else:
+    early_check = """      if (irqSeen[1]) begin
+        $display("FAIL an early feed raised a fault although the window is off");
+        bad <= True;
+      end"""
+    verdict = "fed is quiet, expiry fires, an early feed is just a reload"
+
+TEMPLATE = '''package Wdt@L@Tb;
 
 import RegIf::*;
 import Wdt::*;
 
-// 由 tb/mkwdttb.py 生成，勿手改。
+// 由 tb/mkwdttb.py 生成，勿手改。这一点：width=@W@ window=@WIN@
 
 Bit#(8) rCTRL = 8'h00;
 Bit#(8) rLOAD = 8'h04;
@@ -33,8 +54,8 @@ typedef enum { Setup, RunDown, FeedOk, AfterFeed, LetExpire, CheckFire,
   Phase deriving (Bits, Eq);
 
 (* synthesize *)
-module mkWdtTb(Empty);
-  WdtIfc#(8, 32, 16) w <- mkWdt(WdtCfg { window: True });
+module mkWdt@L@Tb(Empty);
+  WdtIfc#(8, 32, @W@) w <- mkWdt(WdtCfg { window: @WIN@ });
 
   Reg#(Phase)    ph  <- mkReg(Setup);
   Reg#(Bit#(8))  s   <- mkReg(0);
@@ -74,7 +95,6 @@ module mkWdtTb(Empty);
     s <= s + 1;
   endrule
 
-  // 等它数到窗口以下
   rule runDown (ph == RunDown);
     let x <- w.regs.access(RegReq { addr: rCNT, write: False,
                                     wdata: 0, wstrb: 4'hF });
@@ -101,7 +121,6 @@ module mkWdtTb(Empty);
     s <= s + 1;
   endrule
 
-  // 不喂了，让它数到底
   rule letExpire (ph == LetExpire);
     let x <- w.regs.access(RegReq { addr: rCNT, write: False,
                                     wdata: 0, wstrb: 4'hF });
@@ -144,10 +163,7 @@ module mkWdtTb(Empty);
 
   rule checkEarly (ph == CheckEarly);
     if (s > 3) begin
-      if (!irqSeen[1]) begin
-        $display("FAIL an early feed was accepted, no fault raised");
-        bad <= True;
-      end
+@EARLY@
       ph <= Done;
     end
     s <= s + 1;
@@ -155,11 +171,18 @@ module mkWdtTb(Empty);
 
   rule fin (ph == Done);
     if (bad) $display("FAILED");
-    else $display("PASS wdt: fed in window is quiet, expiry fires, early feed faults");
+    else $display("PASS wdt: @VERDICT@");
     $finish(bad ? 1 : 0);
   endrule
 endmodule
 
 endpackage
-''', encoding="utf-8")
-print("  wdt 行为测试台就位")
+'''
+
+txt = (TEMPLATE.replace("@L@", label)
+               .replace("@W@", str(width))
+               .replace("@WIN@", "True" if window else "False")
+               .replace("@EARLY@", early_check)
+               .replace("@VERDICT@", verdict))
+(out / f"Wdt{label}Tb.bsv").write_text(txt, encoding="utf-8")
+print(f"  wdt 行为测试台就位：width={width} window={window}")
