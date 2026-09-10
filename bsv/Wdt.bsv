@@ -52,8 +52,13 @@ module mkWdt#(WdtCfg cfg)(WdtIfc#(aw, dw, width))
       cnt   <= r.load;
       fired <= False;
     end else if (r.ctrl_en == 1) begin
-      if (cnt == 0) fired <= True;
-      else cnt <= cnt - 1;
+      if (cnt == 0) begin
+        fired <= True;
+        // 周期模式：到期即自动重装，不必等软件来喂。不这么做，中断周期里
+        // 就掺进了中断服务的时间——手册 14.9 造 wdogzerocmp 正是为了这个。
+        if (r.ctrl_periodic == 1) cnt <= r.load;
+      end else
+        cnt <= cnt - 1;
     end
     if (early) fired <= True;
   endrule

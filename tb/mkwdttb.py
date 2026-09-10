@@ -26,13 +26,15 @@ if window:
         $display("FAIL an early feed was accepted, no fault raised");
         bad <= True;
       end"""
-    verdict = "fed in window is quiet, expiry fires, early feed faults"
+    verdict = ("fed in window is quiet, expiry fires, early feed faults, "
+           "a wrong key does not feed, periodic reloads without one")
 else:
     early_check = """      if (irqSeen[1]) begin
         $display("FAIL an early feed raised a fault although the window is off");
         bad <= True;
       end"""
-    verdict = "fed is quiet, expiry fires, an early feed is just a reload"
+    verdict = ("fed is quiet, expiry fires, an early feed is just a reload, "
+           "a wrong key does not feed, periodic reloads without one")
 
 TEMPLATE = '''package Wdt@L@Tb;
 
@@ -50,7 +52,8 @@ Bit#(8) rFEED = 8'h10;
 Bit#(32) feedKey = 32'hA5A5_5A5A;
 
 typedef enum { Setup, RunDown, FeedOk, AfterFeed, LetExpire, CheckFire,
-               Recover, FeedEarly, CheckEarly, Done }
+               Recover, FeedEarly, CheckEarly, BadKey, RunLow, FeedBad,
+               CheckBadKey, Periodic, CheckPeriodic, Done }
   Phase deriving (Bits, Eq);
 
 (* synthesize *)
@@ -64,6 +67,8 @@ module mkWdt@L@Tb(Empty);
   // 口 0 归 pins 置位，口 1 归测试序列读取与清零，清零压过同拍的置位
   Reg#(Bool)     rstSeen[2] <- mkCReg(2, False);
   Reg#(Bool)     irqSeen[2] <- mkCReg(2, False);
+  Reg#(Bit#(32)) prev <- mkReg(0);
+  Reg#(Bit#(32)) mark <- mkReg(0);
 
   rule pins;
     if (w.pins.rst_out == 1) rstSeen[0] <= True;
@@ -164,9 +169,80 @@ module mkWdt@L@Tb(Empty);
   rule checkEarly (ph == CheckEarly);
     if (s > 3) begin
 @EARLY@
-      ph <= Done;
+      ph <= BadKey;
+      s  <= 0;
     end
-    s <= s + 1;
+    else s <= s + 1;
+  endrule
+
+  // 口令写错必须无效。跑飞的程序随手写一个字过来就能把狗喂了，口令就白设了。
+  rule badKey (ph == BadKey);
+    case (s)
+      0: wr(rCTRL, 32'h0);
+      1: wr(rLOAD, 20);
+      2: wr(rCTRL, 32'h1);
+      default: noAction;
+    endcase
+    if (s > 3) begin ph <= RunLow; s <= 0; end
+    else s <= s + 1;
+  endrule
+
+  rule runLow (ph == RunLow);
+    let x <- w.regs.access(RegReq { addr: rCNT, write: False,
+                                    wdata: 0, wstrb: 4'hF });
+    if (x.rdata < 10) begin
+      mark <= x.rdata;
+      ph   <= FeedBad;
+    end
+  endrule
+
+  rule feedBad (ph == FeedBad);
+    wr(rFEED, 32'hDEAD_BEEF);
+    ph <= CheckBadKey;
+    s  <= 0;
+  endrule
+
+  rule checkBadKey (ph == CheckBadKey);
+    let x <- w.regs.access(RegReq { addr: rCNT, write: False,
+                                    wdata: 0, wstrb: 4'hF });
+    if (s > 3) begin
+      if (x.rdata > mark) begin
+        $display("FAIL a wrong key still fed the watchdog");
+        bad <= True;
+      end
+      ph <= Periodic;
+      s  <= 0;
+    end
+    else s <= s + 1;
+  endrule
+
+  // 关掉再开，让使能的上升沿把新的装载值放进去
+  rule periodic (ph == Periodic);
+    case (s)
+      0: wr(rCTRL, 32'h0);
+      1: wr(rLOAD, 12);
+      2: wr(rCTRL, 32'h5);            // en | periodic
+      default: noAction;
+    endcase
+    // s 只许有一条写路径：case 里写一次、外面再写一次就是 G0004
+    if (s > 3) begin ph <= CheckPeriodic; s <= 0; end
+    else s <= s + 1;
+  endrule
+
+  // 判据不能看中断：不带周期模式时中断也一直举着，看中断分不出来。
+  // 要看计数器——不喂狗而它自己涨回去，只可能是到期自动重装。
+  rule checkPeriodic (ph == CheckPeriodic);
+    let x <- w.regs.access(RegReq { addr: rCNT, write: False,
+                                    wdata: 0, wstrb: 4'hF });
+    Bool rose = s > 0 && x.rdata > prev;
+    Bool over = s > 200;
+    if (over && !rose) begin
+      $display("FAIL the counter never reloaded: periodic mode is not working");
+      bad <= True;
+    end
+    prev <= x.rdata;
+    s    <= s + 1;
+    ph   <= (rose || over) ? Done : CheckPeriodic;
   endrule
 
   rule fin (ph == Done);

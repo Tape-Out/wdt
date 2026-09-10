@@ -36,10 +36,10 @@ features:
     default: true
     area:
       points:
-        '16': 348.04
-        '20': 432.88
-        '24': 445.76
-        '32': 618.52
+        '16': 285.6
+        '20': 369.04
+        '24': 474.88
+        '32': 565.32
       per: width
 emit:
 - kind: bsv
@@ -59,55 +59,56 @@ deps:
 area:
   base:
     points:
-      '16': 915.88
-      '20': 1043.0
-      '24': 1154.72
-      '32': 1401.96
+      '16': 974.12
+      '20': 1101.24
+      '24': 1207.92
+      '32': 1405.04
     per: width
   margin: 0.034
   model: points-additive
   error:
     bound: 0.033
     sign: over
-    note: parameter curves stored as measured points, features added on top, then
-      lifted by 0.034 so that no untested combination predicts under; the worst came
-      in 2.90 percent under before the lift
+    note: parameter curves stored as measured points, features added on top, 
+      then lifted by 0.034 so that no untested combination predicts under; the 
+      worst came in 2.90 percent under before the lift
   measured:
   - at:
       width: 16
       window: false
-    um2: 915.88
+    um2: 974.12
   - at:
       width: 20
       window: false
-    um2: 1043.0
+    um2: 1101.24
   - at:
       width: 24
       window: false
-    um2: 1154.72
+    um2: 1207.92
   - at:
       width: 32
       window: false
-    um2: 1401.96
+    um2: 1405.04
   - at:
       width: 16
       window: true
-    um2: 1263.92
+    um2: 1259.72
   - at:
       width: 20
       window: true
-    um2: 1475.88
+    um2: 1470.28
   - at:
       width: 24
       window: true
-    um2: 1600.48
+    um2: 1682.8
   - at:
       width: 32
       window: true
-    um2: 2020.48
+    um2: 1970.36
   corner:
     tool: ecc
     pdk: ics55
     freq_mhz: 100
-    measured: '2026-09-09'
-    gen_digest: sha256:9bf00541a55e0c20
+    measured: '2026-09-11'
+    toolchain: bsc 2026.01 · yosys 0.68+195 · ecc 0.1.0a11
+    gen_digest: sha256:6d30579c356a4252

@@ -10,6 +10,8 @@ regs:
     fields:
       - { name: en,     bits: "0:0", sw: rw, hw: r, reset: 0 }
       - { name: rstmode, bits: "1:1", sw: rw, hw: r, reset: 0 }
+      # 到期即自动重装，周期于是与中断服务时间无关（FE310 手册 14.9 的 wdogzerocmp）
+      - { name: periodic, bits: "2:2", sw: rw, hw: r, reset: 0 }
   - name: load
     offset: 0x04
     desc: reload value
