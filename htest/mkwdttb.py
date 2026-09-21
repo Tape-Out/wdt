@@ -41,7 +41,7 @@ TEMPLATE = '''package Wdt@L@Tb;
 import RegIf::*;
 import Wdt::*;
 
-// 由 tb/mkwdttb.py 生成，勿手改。这一点：width=@W@ window=@WIN@
+// 由 htest/mkwdttb.py 生成，勿手改。这一点：width=@W@ window=@WIN@
 
 Bit#(8) rCTRL = 8'h00;
 Bit#(8) rLOAD = 8'h04;
